@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zarandok_app_2/sheetmodeview.dart';
+import 'package:zarandok_app_2/svgsheetmodeview.dart';
 import 'package:zarandok_app_2/textmodeview.dart';
 import 'package:zarandok_app_2/songdata.dart';
 
@@ -172,7 +173,7 @@ class VirtualPageViewState extends State<VirtualPageView>
         onPageChanged: onPageChanged,
         physics: enaSnap ? PageScrollPhysics() : NeverScrollableScrollPhysics(),
         itemBuilder: (ctx, i){
-          return viewMode == ViewMode.VM_IMAGE ? SheetModeView(assetRoutes[i],
+          return viewMode == ViewMode.VM_IMAGE ? SvgSheetModeView(assetRoutes[i],
                   (v){
                     setState(() {
                       enaSnap = !v;
