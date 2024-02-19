@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
@@ -8,6 +10,15 @@ import 'package:zarandok_app_2/songsearch.dart';
 import 'package:zarandok_app_2/tableofcontents.dart';
 import 'dart:convert';
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
+}
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -16,6 +27,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Zarándok App',
+      scrollBehavior: AppScrollBehavior(),
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -53,22 +65,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  PageController controller = PageController();
-
   bool showMenu = true;
-  ViewMode textMode = ViewMode.VM_IMAGE;
-
-  PageController pageController = PageController();
 
   List<String> assetRoutes = [];
-
   List<SongData> pageDatas = [];
 
-  bool enaSnap = true;
-
-  SongData? currentSong;
-
   VirtualPageController virtualPageController = VirtualPageController();
+  ViewMode viewMode = ViewMode.VM_IMAGE;
 
 
   _MyHomePageState()
@@ -90,24 +93,6 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
-
-  onChangeTextMode()
-  {
-      if(virtualPageController.viewMode == ViewMode.VM_IMAGE)
-        {
-          virtualPageController.viewMode = ViewMode.VM_TEXT;
-        }
-      else
-        {
-          virtualPageController.viewMode = ViewMode.VM_IMAGE;
-        }
-  }
-
-  onSongChanged(SongData? song)
-  {
-    currentSong = song;
-  }
-
   SongData getPageDataByPage(int page)
   {
     SongData ret = pageDatas.first;
@@ -127,12 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void onToggleAudioPlay()
-  {
-
-  }
-
-  void gotoTOC()
+  void openTableOfContent()
   {
     Navigator.push<SongData>(context, MaterialPageRoute(builder: (ctx){
       return TableOfContentsView(pageDatas);
@@ -144,18 +124,11 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void gotoAbout() {
+  void openAbout() {
     Navigator.push(context, MaterialPageRoute(builder: (ctx){
       return AboutPage();
     }
     )).then((value) => Navigator.pop(context));
-  }
-
-  void onZoom(bool z)
-  {
-    setState(() {
-      enaSnap = !z;
-    });
   }
 
 
@@ -168,8 +141,8 @@ class _MyHomePageState extends State<MyHomePage> {
           padding: EdgeInsets.zero, margin: EdgeInsets.zero,
           decoration: BoxDecoration(image: DecorationImage(image: AssetImage("assets/zarandokheaderimg.png"), fit: BoxFit.cover)),
         ),
-        ListTile(leading: Icon(Icons.list),title: Text("Tartalomjegyzék"), onTap: gotoTOC,),
-        ListTile(leading: Icon(Icons.info_outline),title: Text("Rólunk"), onTap: gotoAbout,),
+        ListTile(leading: Icon(Icons.list),title: Text("Tartalomjegyzék"), onTap: openTableOfContent,),
+        ListTile(leading: Icon(Icons.info_outline),title: Text("Rólunk"), onTap: openAbout,),
       ],
       ),
     );
@@ -179,7 +152,18 @@ class _MyHomePageState extends State<MyHomePage> {
   {
     List<Widget> ret = [];
     ret.add(IconButton(icon: Icon(Icons.search), onPressed: onSearch));
-    ret.add(IconButton(icon: Icon(Icons.text_fields), onPressed: onChangeTextMode,));
+    ret.add(IconButton(icon: Icon(Icons.text_fields), onPressed: () {
+      if (viewMode == ViewMode.VM_IMAGE) {
+        setState(() {
+          viewMode = ViewMode.VM_TEXT;
+        });
+      }
+      else {
+        setState(() {
+          viewMode = ViewMode.VM_IMAGE;
+        });
+      }
+    },));
     return ret;
   }
 
@@ -198,7 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: buildActions(),
       ) : null,
       drawer: createDrawer(),
-      body: VirtualPageView(virtualPageController, onSongChanged),
+      body: VirtualPageView(viewMode, virtualPageController, null),
     );
   }
 

@@ -7,6 +7,7 @@ class AboutPage extends StatelessWidget
 
   final String _gitHubURL = "https://github.com/felrugo/zarandok-app";
   final String _meviszText = "A Magyarországi Evangélikus Ifjúsági Szövetség, röviden Mevisz, 1989-ben alakult. Ahogy a neve is mutatja, elsősorban evangélikus egyházi kötődéssel rendelkező fiatalokból áll a tagsága, bár ez egyáltalán nem elvárás a tagok felé. Célja, hogy olyan szociális, lelki és vallásos szolgálatot végezzen, amire az egyház lehetőségei nem terjednek ki. Jelenleg, három évtized elteltével, az úgynevezett Bárka szakcsoport a legjelentősebb. Ennek önkéntes tagjai olyan mozgásukban korlátozott emberekkel járnak együtt nyaralni, akiknek máshogy nem lenne erre lehetőségük. Ezek a közös nyári alkalmak körülbelül egyhetesek, és egy táborban 30-50 fő vesz részt. A Mevisznek van egy könnyűzenei szakcsoportja is. Munkájuk hatására született meg és került kiadásra két egyházi, ifjúsági énekeskönyv, az „Új Ének” és a „Zarándokének”. A Zarándokének online, ingyenes applikációját nyitotta meg a kedves olvasó. A Mevisz nevében kívánjunk, hogy használja örömmel, nyitott szívvel, jó hangulattal és kedves barátokkal! Hiszen azért születtek és lettek összegyűjtve ezek az énekek, hogy énekeljük őket. Dicsérjük Istent!";
+  final String _version = "1.0.3";
 
   const AboutPage({super.key});
 
@@ -29,6 +30,7 @@ class AboutPage extends StatelessWidget
         ));
   }
 
+  /// Create a bowser tab and opens the url
   _launchURL(String url) async {
     if (await canLaunchUrlString(url)) {
       await launchUrlString(url);
@@ -41,7 +43,7 @@ class AboutPage extends StatelessWidget
     return Scaffold(
       appBar: AppBar(title: Text("Rólunk")),
       body: ListView(itemExtent: 50.0, children: <Widget>[
-        ListTile(title: Text("ZarándokApp"), subtitle: Text("1.0.2"), leading: FlutterLogo(),),
+        ListTile(title: Text("ZarándokApp"), subtitle: Text(_version), leading: FlutterLogo(),),
         Center(child: Text("Közreműködők",style: TextStyle(fontSize: 16.0),)),
         ListTile(title: Text("Takács László"), subtitle: Text("Project alapító és asszetek"), leading: FlutterLogo(),),
         ListTile(title: Text("Szabó Bálint"), subtitle: Text("Vezető fejlesztő"), leading: FlutterLogo(),),
