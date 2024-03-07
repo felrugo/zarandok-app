@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Zarándok App',
+      title: 'ZarándokApp',
       scrollBehavior: AppScrollBehavior(),
       theme: ThemeData(
         // This is the theme of your application.
@@ -108,7 +108,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void onSearch() {
     var delegate = SongSearchDelegate(pageDatas);
     showSearch(context: context, delegate: delegate).then((v){
-      virtualPageController.jumpTo(v!);
+      if(v != null)
+        virtualPageController.jumpTo(v);
     });
   }
 
@@ -178,7 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: showMenu ? AppBar(
-        title: Text("Zarándok App"),
+        title: Text("ZarándokApp"),
         actions: buildActions(),
       ) : null,
       drawer: createDrawer(),

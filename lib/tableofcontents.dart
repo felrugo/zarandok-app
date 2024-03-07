@@ -43,7 +43,9 @@ class TableOfContentsState extends State<TableOfContentsView>
 
     return ListTile(title: Text(data[ix].title), subtitle: Text("${data[ix].num}. ének"), onTap: (){
       Navigator.pop(ctx, data[ix]);
-    },);
+    },
+      trailing: IconButton(icon: Icon(Icons.add_a_photo), onPressed: (){},),
+    );
   }
 
   void sortIt()
