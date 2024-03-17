@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zarandok_app_2/songdata.dart';
+import 'package:zarandok_app_2/youtube_view.dart';
 
 enum SortType {
   ST_TITLE,
@@ -38,14 +40,17 @@ class TableOfContentsState extends State<TableOfContentsView>
     sortIt();
   }
 
+  @override
+  void initState() {
+    super.initState();
+
+  }
+
   Widget buildListItem(BuildContext ctx, int ix)
   {
-
-    return ListTile(title: Text(data[ix].title), subtitle: Text("${data[ix].num}. ének"), onTap: (){
+    return buildSongListTile(data[ix], ctx, (){
       Navigator.pop(ctx, data[ix]);
-    },
-      trailing: IconButton(icon: Icon(Icons.add_a_photo), onPressed: (){},),
-    );
+    },);
   }
 
   void sortIt()
@@ -78,7 +83,6 @@ class TableOfContentsState extends State<TableOfContentsView>
 
 
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Scaffold(
       appBar: AppBar(title: Text("Tartalomjegyzék"), actions: <Widget>[
         Builder(builder: (ctx){

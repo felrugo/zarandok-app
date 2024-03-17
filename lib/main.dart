@@ -66,47 +66,13 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   bool showMenu = true;
-
-  List<String> assetRoutes = [];
-  List<SongData> pageDatas = [];
-
   VirtualPageController virtualPageController = VirtualPageController();
   ViewMode viewMode = ViewMode.VM_IMAGE;
 
 
-  _MyHomePageState()
-  {
-
-        assetRoutes.clear();
-
-        for(int i = 0; i < 232; i++)
-          {
-            assetRoutes.add("assets/zarandok_img_${i}.jpg");
-          }
-
-        rootBundle.loadString("assets/bundle.json").then((v){
-          var data = jsonDecode(v);
-          for(var s in data)
-            {
-              pageDatas.add(SongData.fromJson(s));
-            }
-        });
-  }
-
-  SongData getPageDataByPage(int page)
-  {
-    SongData ret = pageDatas.first;
-    pageDatas.forEach((f){
-      if(f.page == page)
-        {
-          ret = f;
-        }
-    });
-    return ret;
-  }
 
   void onSearch() {
-    var delegate = SongSearchDelegate(pageDatas);
+    var delegate = SongSearchDelegate(SongDatabase.getInstance().songs);
     showSearch(context: context, delegate: delegate).then((v){
       if(v != null)
         virtualPageController.jumpTo(v);
@@ -116,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void openTableOfContent()
   {
     Navigator.push<SongData>(context, MaterialPageRoute(builder: (ctx){
-      return TableOfContentsView(pageDatas);
+      return TableOfContentsView(SongDatabase.getInstance().songs);
     })).then((v){
       if (v != null) {
         virtualPageController.jumpTo(v);

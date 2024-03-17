@@ -41,13 +41,9 @@ class SongSearchDelegate extends SearchDelegate<SongData>
     });
 
     return ListView.separated(itemBuilder: (c, i){
-      return ListTile(
-        title: Text(_songs[i].title),
-        subtitle: Text("${_songs[i].num}. ének"),
-        onTap: (){
-          close(context, _songs[i]);
-        },
-      );
+      return buildSongListTile(_songs[i], c, () {
+        close(context, _songs[i]);
+      });
     },
       itemCount: 10,
       separatorBuilder: (c, i){
@@ -74,13 +70,9 @@ class SongSearchDelegate extends SearchDelegate<SongData>
       return distance(query, b.title).compareTo(distance(query, a.title));
     });
     return ListView.separated(itemBuilder: (c, i){
-      return ListTile(
-        title: Text(_songs[i].title),
-        subtitle: Text("${_songs[i].num}. ének"),
-        onTap: (){
-          close(context, _songs[i]);
-        },
-      );
+      return buildSongListTile(_songs[i], c, () {
+        close(context, _songs[i]);
+      });
     },
     itemCount: 10,
     separatorBuilder: (c, i){

@@ -52,35 +52,11 @@ class VirtualPageViewState extends State<VirtualPageView>
   PageController pageController = PageController();
 
   TransformationController transformationController = TransformationController();
-
-  List<String> assetRoutes = [];
-  List<SongData> pageDatas = [];
-
   bool zoomed = false;
 
   late VirtualPageController controller;
   late OnSongChangedCallback? changedCallback;
   late ViewMode viewMode;
-
-  VirtualPageViewState()
-  {
-    assetRoutes.clear();
-
-    for(int i = 0; i < 232; i++)
-    {
-      assetRoutes.add("assets/zarandok_img_${i}.jpg");
-    }
-
-    rootBundle.loadString("assets/bundle.json").then((v){
-      var data = jsonDecode(v);
-      for(var s in data)
-      {
-        pageDatas.add(SongData.fromJson(s));
-      }
-      pageDatas.sort((a,b) => a.num.compareTo(b.num));
-    });
-
-  }
 
   void onSongJump() {
     transformationController.value.setIdentity();
@@ -136,6 +112,7 @@ class VirtualPageViewState extends State<VirtualPageView>
 
   int getForPage(int page)
   {
+    var pageDatas = SongDatabase.getInstance().songs;
     var maped = pageDatas.map((e) => (e.page - page).abs());
     var m = maped.reduce(min);
     var filtered = List<SongData>.from(pageDatas);
@@ -147,6 +124,7 @@ class VirtualPageViewState extends State<VirtualPageView>
   
   onPageChanged(int page)
   {
+    var pageDatas = SongDatabase.getInstance().songs;
     SongData? data;
     if (viewMode == ViewMode.VM_IMAGE)
     {
@@ -167,6 +145,9 @@ class VirtualPageViewState extends State<VirtualPageView>
 
   @override
   Widget build(BuildContext context) {
+
+    var pageDatas = SongDatabase.getInstance().songs;
+    var assetRoutes = SongDatabase.getInstance().assetRoutes;
 
     Widget inner = PageView.builder(
         controller: pageController,
