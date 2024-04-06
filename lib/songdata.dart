@@ -11,7 +11,9 @@ class SongData
   String title = "";
   int num = 0;
   int page = 0;
-  List<String> lyrics = [];
+  List<String> lyrics = []; // Soon to be removed
+  String? youtubeUrl;
+  String? pdfUrl;
 
   /// From JSON constructor
   SongData.fromJson(Map<String, dynamic> json)
@@ -30,6 +32,8 @@ class SongData
             }
         });
       }
+    this.youtubeUrl = json["youtube"];
+    this.pdfUrl = json["sheet"];
   }
 }
 

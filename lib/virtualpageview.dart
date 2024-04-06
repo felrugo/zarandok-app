@@ -166,7 +166,7 @@ class VirtualPageViewState extends State<VirtualPageView>
             onInteractionUpdate: (details) {
               double correctScale = transformationController.value.getMaxScaleOnAxis();
               setState(() {
-                zoomed = ! ( correctScale <= (1.0 + 0.005) );
+                zoomed = ! ( correctScale <= (1.0 + 0.01) );
               });
             },
             child: Image.asset(assetRoutes[i]),
