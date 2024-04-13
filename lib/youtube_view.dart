@@ -6,9 +6,9 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zarandok_app_2/songdata.dart';
 
 class YoutubeView extends StatefulWidget {
-  final SongData? startUrl;
+  final SongData? initialSong;
 
-  const YoutubeView({this.startUrl, super.key});
+  const YoutubeView({this.initialSong, super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -27,14 +27,35 @@ class YoutubeViewState extends State<YoutubeView> {
   @override
   void initState() {
     super.initState();
-    currentSong = widget.startUrl ?? SongDatabase.getInstance().songs[0];
+    currentSong = widget.initialSong ?? SongDatabase.getInstance().songs[0];
 
     String? vId;
-    if(widget.startUrl != null) {
+    if(widget.initialSong != null) {
       vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeUrl??"");
     }
 
     youtubePlayerController = YoutubePlayerController.fromVideoId(videoId: vId ?? videos[0]);
+  }
+
+  Widget buildFurtherVideosList(BuildContext context) {
+    List<SongData> songsWithVideos = SongDatabase.getInstance().songs.where((element) => element.youtubeUrl != null).toList();
+
+    return ListView.separated(itemBuilder: (ctx, i) {
+      SongData song = songsWithVideos[i];
+      var lead = null;
+      if(song == currentSong) { // The song of the list item is currently playing
+        lead = Icon(Icons.play_arrow);
+      }
+      return ListTile(
+        leading: lead,
+        title: Text("${song.num}. ${song.title}"),
+        onTap: () {
+          setState(() {
+            currentSong = song;
+            youtubePlayerController.loadVideoById(videoId: YoutubePlayerController.convertUrlToId(song.youtubeUrl??"")??"");
+          });
+      },);
+    }, separatorBuilder: (BuildContext context, int index) { return Divider(); }, itemCount: songsWithVideos.length, shrinkWrap: true,);
   }
 
   Widget buildWide(BuildContext context) {
@@ -43,11 +64,7 @@ class YoutubeViewState extends State<YoutubeView> {
         YoutubePlayer(controller: youtubePlayerController),
         Align(child: Text("${currentSong.num}. ${currentSong.title}", style: TextStyle(fontSize: 28.0),), alignment: Alignment.topLeft,),
       ]), flex: 2,),
-      Expanded(child: ListView.separated(itemBuilder: (ctx, i) {
-        return ListTile(leading: Text("Video $i"), onTap: () {
-          youtubePlayerController.loadVideoById(videoId: videos[i]);
-        },);
-      }, separatorBuilder: (BuildContext context, int index) { return Divider(); }, itemCount: videos.length,)
+      Expanded(child: Card(child: Column(children: [Text("További videók:", style: TextStyle(fontSize: 32),), Divider(thickness: 4.0,), buildFurtherVideosList(context)]))
       ),
     ],);
   }
@@ -56,11 +73,7 @@ class YoutubeViewState extends State<YoutubeView> {
     return Column(children: [
       YoutubePlayer(controller: youtubePlayerController),
       Text("${currentSong.num}. ${currentSong.title}", style: TextStyle(fontSize: 28.0)),
-      Expanded(child: ListView.separated(itemBuilder: (ctx, i) {
-        return ListTile(leading: Text("Video $i"), onTap: () {
-          youtubePlayerController.loadVideoById(videoId: videos[i]);
-        },);
-      }, separatorBuilder: (BuildContext context, int index) { return Divider(); }, itemCount: videos.length,)
+      Expanded(child: buildFurtherVideosList(context)
       )
     ],);
   }

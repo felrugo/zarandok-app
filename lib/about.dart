@@ -43,7 +43,7 @@ class AboutPage extends StatelessWidget
     return Scaffold(
       appBar: AppBar(title: Text("Rólunk")),
       body: ListView(itemExtent: 50.0, children: <Widget>[
-        ListTile(title: Text("ZarándokApp"), subtitle: Text(_version), leading: FlutterLogo(),),
+        ListTile(title: Text("ZarandokApp"), subtitle: Text(_version), leading: FlutterLogo(),),
         Center(child: Text("Közreműködők",style: TextStyle(fontSize: 16.0),)),
         ListTile(title: Text("Takács László"), subtitle: Text("Project alapító és asszetek"), leading: FlutterLogo(),),
         ListTile(title: Text("Szabó Bálint"), subtitle: Text("Vezető fejlesztő"), leading: FlutterLogo(),),

@@ -32,8 +32,8 @@ class SongData
             }
         });
       }
-    this.youtubeUrl = json["youtube"];
-    this.pdfUrl = json["sheet"];
+    youtubeUrl = json["youtube"];
+    pdfUrl = json["sheet"];
   }
 }
 
@@ -81,16 +81,19 @@ class SongDatabase {
 }
 
 ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onTap) {
-  return ListTile(
-    title: Text(song.title),
-    subtitle: Text("${song.num}. ének"),
-    onTap: onTap,
-    trailing: Row(children: [
-      IconButton(onPressed: (){
-        Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
-          return YoutubeView();
-        }));
-      }, icon: Icon(Icons.play_circle)),
+
+  List<Widget> trailing = [];
+  if(song.youtubeUrl != null) {
+    trailing.add(
+        IconButton(onPressed: (){
+          Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
+            return YoutubeView(initialSong: song,);
+          }));
+        }, icon: Icon(Icons.play_circle))
+    );
+  }
+
+  trailing.add(
       IconButton(onPressed: () {
         var url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
         canLaunchUrlString(url).then((value) {
@@ -98,9 +101,14 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
             launchUrlString(url);
           }
         });
-      }, icon: Icon(Icons.print)),
-    ],
-      mainAxisSize: MainAxisSize.min,
+      }, icon: Icon(Icons.print))
+  );
+
+  return ListTile(
+    title: Text(song.title),
+    subtitle: Text("${song.num}. ének"),
+    onTap: onTap,
+    trailing: Row(mainAxisSize: MainAxisSize.min, children: trailing,
     ),
   );
 }

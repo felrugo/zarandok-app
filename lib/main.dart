@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ZarándokApp',
+      title: 'ZarandokApp',
       scrollBehavior: AppScrollBehavior(),
       theme: ThemeData(
         // This is the theme of your application.
@@ -145,7 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: showMenu ? AppBar(
-        title: Text("ZarándokApp"),
+        title: Text("ZarandokApp"),
         actions: buildActions(),
       ) : null,
       drawer: createDrawer(),
