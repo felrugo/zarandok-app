@@ -1,7 +1,8 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show SystemChrome, SystemUiMode, SystemUiOverlay, SystemUiOverlayStyle, rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:zarandok_app_2/about.dart';
 import 'package:zarandok_app_2/virtualpageview.dart';
@@ -69,7 +70,10 @@ class _MyHomePageState extends State<MyHomePage> {
   VirtualPageController virtualPageController = VirtualPageController();
   ViewMode viewMode = ViewMode.VM_IMAGE;
 
-
+  @override
+  void initState() {
+    super.initState();
+  }
 
   void onSearch() {
     var delegate = SongSearchDelegate(SongDatabase.getInstance().songs);
@@ -145,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: showMenu ? AppBar(
-        title: Text("ZarandokApp"),
+        title: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(5), child: Image.asset("assets/icon/icon.png", fit: BoxFit.cover, height: 30.0,)), SizedBox(width: 10.0,), Text("ZarandokApp")],),
         actions: buildActions(),
       ) : null,
       drawer: createDrawer(),

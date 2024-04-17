@@ -12,7 +12,8 @@ class SongData
   int num = 0;
   int page = 0;
   List<String> lyrics = []; // Soon to be removed
-  String? youtubeUrl;
+  String? youtubeSongUrl;
+  String? youtubeKaraokeUrl;
   String? pdfUrl;
 
   /// From JSON constructor
@@ -32,7 +33,8 @@ class SongData
             }
         });
       }
-    youtubeUrl = json["youtube"];
+    youtubeKaraokeUrl = json["youtubeKaraoke"];
+    youtubeSongUrl = json["youtubeSong"];
     pdfUrl = json["sheet"];
   }
 }
@@ -83,18 +85,18 @@ class SongDatabase {
 ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onTap) {
 
   List<Widget> trailing = [];
-  if(song.youtubeUrl != null) {
+  if(song.youtubeKaraokeUrl != null) {
     trailing.add(
-        IconButton(onPressed: (){
+        IconButton(iconSize:30.0, onPressed: (){
           Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
             return YoutubeView(initialSong: song,);
           }));
-        }, icon: Icon(Icons.play_circle))
+        }, icon: Icon(Icons.play_circle,))
     );
   }
 
   trailing.add(
-      IconButton(onPressed: () {
+      IconButton(iconSize: 30.0, onPressed: () {
         var url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
         canLaunchUrlString(url).then((value) {
           if(value) {

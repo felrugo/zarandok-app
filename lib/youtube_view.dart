@@ -1,14 +1,24 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zarandok_app_2/songdata.dart';
+import 'package:zarandok_app_2/zarandokyoutubescaffold.dart';
+
+
+enum YoutubeViewMode {
+  KaraokeMode,
+  SongMode
+}
+
 
 class YoutubeView extends StatefulWidget {
   final SongData? initialSong;
+  final YoutubeViewMode? mode;
 
-  const YoutubeView({this.initialSong, super.key});
+  const YoutubeView({this.initialSong, this.mode, super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -21,6 +31,9 @@ class YoutubeViewState extends State<YoutubeView> {
 
   late YoutubePlayerController youtubePlayerController;
   late SongData currentSong;
+  late YoutubeViewMode mode;
+
+  bool fullscreenMode = false;
 
   List<String> videos = ["fD4rxj7-uO0", "IQvzX0Z3HE4", "4Larp44Ta7c", "U0R8FxDcnM4", "EK0xnviBY1s", "6ZevpFAT1ys"];
 
@@ -28,17 +41,42 @@ class YoutubeViewState extends State<YoutubeView> {
   void initState() {
     super.initState();
     currentSong = widget.initialSong ?? SongDatabase.getInstance().songs[0];
+    mode = widget.mode ?? YoutubeViewMode.SongMode;
 
     String? vId;
-    if(widget.initialSong != null) {
-      vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeUrl??"");
+    switch(mode) {
+      case YoutubeViewMode.KaraokeMode:
+        vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeKaraokeUrl??"");
+        break;
+      case YoutubeViewMode.SongMode:
+        vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeSongUrl??"");
+        break;
     }
 
-    youtubePlayerController = YoutubePlayerController.fromVideoId(videoId: vId ?? videos[0]);
+    YoutubePlayerParams params = YoutubePlayerParams(showFullscreenButton: true);
+
+    if(vId != null)
+      youtubePlayerController = YoutubePlayerController.fromVideoId(videoId: vId, params: params);
+    else
+      youtubePlayerController = YoutubePlayerController();
+
+  }
+
+
+  String? getYoutubeUrlByMode(SongData song) {
+    switch(mode) {
+      case YoutubeViewMode.KaraokeMode:
+        return song.youtubeKaraokeUrl;
+      case YoutubeViewMode.SongMode:
+        return song.youtubeSongUrl;
+    }
   }
 
   Widget buildFurtherVideosList(BuildContext context) {
-    List<SongData> songsWithVideos = SongDatabase.getInstance().songs.where((element) => element.youtubeUrl != null).toList();
+    List<SongData> songsWithVideos = SongDatabase.getInstance().songs
+        .where((element) {
+          return getYoutubeUrlByMode(element) != null;
+        }).toList();
 
     return ListView.separated(itemBuilder: (ctx, i) {
       SongData song = songsWithVideos[i];
@@ -52,47 +90,105 @@ class YoutubeViewState extends State<YoutubeView> {
         onTap: () {
           setState(() {
             currentSong = song;
-            youtubePlayerController.loadVideoById(videoId: YoutubePlayerController.convertUrlToId(song.youtubeUrl??"")??"");
+            youtubePlayerController.loadVideoById(videoId: YoutubePlayerController.convertUrlToId(getYoutubeUrlByMode(song)??"")??"");
           });
       },);
     }, separatorBuilder: (BuildContext context, int index) { return Divider(); }, itemCount: songsWithVideos.length, shrinkWrap: true,);
   }
 
-  Widget buildWide(BuildContext context) {
-    return Row(children: [
-      Expanded(child: Column(children: [
-        YoutubePlayer(controller: youtubePlayerController),
-        Align(child: Text("${currentSong.num}. ${currentSong.title}", style: TextStyle(fontSize: 28.0),), alignment: Alignment.topLeft,),
-      ]), flex: 2,),
-      Expanded(child: Card(child: Column(children: [Text("További videók:", style: TextStyle(fontSize: 32),), Divider(thickness: 4.0,), buildFurtherVideosList(context)]))
-      ),
+  Widget buildModeSwitch(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text("Karaoke"),
+      Switch(value: mode==YoutubeViewMode.SongMode, onChanged: (value) {
+        setState(() {
+          switch(mode) {
+            case YoutubeViewMode.KaraokeMode:
+              mode=YoutubeViewMode.SongMode;
+              break;
+            case YoutubeViewMode.SongMode:
+              mode=YoutubeViewMode.KaraokeMode;
+              break;
+          }
+
+          // probably need to reload youtubeplayer
+          youtubePlayerController.loadVideoById(
+              videoId: YoutubePlayerController.convertUrlToId(getYoutubeUrlByMode(currentSong)??"")??""
+          );
+
+        });
+      }),
+      Text("Dal")
     ],);
   }
 
-  Widget buildTall(BuildContext context) {
+  Widget buildWide(BuildContext context, Widget player) {
+
+    final pad = MediaQuery.of(context).padding;
+
+    double sh = MediaQuery.of(context).size.height;
+    double sw = MediaQuery.of(context).size.width - (pad.left+pad.right);
+
+
+    final side = Container(width: 250.0, child: Card(child: Column(children: [
+      Center(child:buildModeSwitch(context)),
+      Divider(thickness: 4.0,),
+      Expanded(child: buildFurtherVideosList(context))
+    ])
+    )
+    );
+
+    return SafeArea(child: Row(children: [
+      Container(child: player,constraints: BoxConstraints(maxWidth: sw-250, maxHeight: sh),),
+      side,
+      ],
+    )
+    );
+  }
+
+  Widget buildTall(BuildContext context, Widget player) {
     return Column(children: [
-      YoutubePlayer(controller: youtubePlayerController),
-      Text("${currentSong.num}. ${currentSong.title}", style: TextStyle(fontSize: 28.0)),
-      Expanded(child: buildFurtherVideosList(context)
-      )
-    ],);
+      player,
+      Expanded(child:
+      Card(child: Column(children: [
+        Center(child: buildModeSwitch(context)),
+        Divider(thickness: 2.0,),
+        Expanded(child: buildFurtherVideosList(context))
+      ],),),)
+      ],);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("ZarandokApp Karaoke"),),
-      body: OrientationBuilder(builder: decideOrientation,)
-    );
+
+    var title = mode == YoutubeViewMode.SongMode ? "ZarandokApp Dal" : "ZarandokApp Karaoke";
+
+    return OrientationBuilder(builder: (context, orientation) {
+      return ZarandokAppYoutubePlayerScaffold(autoFullScreen: false,
+          lockedOrientations: DeviceOrientation.values,
+          builder: (context, player) {
+            return Scaffold(
+                appBar: AppBar(title: Text(title), scrolledUnderElevation: 0.0),
+                body: decideOrientation(context, player, orientation)
+            );
+          }, controller: youtubePlayerController);
+    });
   }
 
-  Widget decideOrientation(BuildContext context, Orientation orientation) {
+  @override
+  void dispose() {
+    youtubePlayerController.stopVideo().then((value) {
+      //youtubePlayerController.close();
+    });
+    super.dispose();
+  }
+
+  Widget decideOrientation(BuildContext context, Widget player, Orientation orientation) {
     var mediaData = MediaQuery.of(context);
     if(mediaData.size.width > mediaData.size.height) { // widescreen
-      return buildWide(context);
+      return buildWide(context, player);
     }
     else {
-      return buildTall(context);
+      return buildTall(context, player);
     }
   }
 }
