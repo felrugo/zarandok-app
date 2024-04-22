@@ -33,6 +33,8 @@ class YoutubeViewState extends State<YoutubeView> {
   late SongData currentSong;
   late YoutubeViewMode mode;
 
+  late SongDatabase database;
+
   bool fullscreenMode = false;
 
   List<String> videos = ["fD4rxj7-uO0", "IQvzX0Z3HE4", "4Larp44Ta7c", "U0R8FxDcnM4", "EK0xnviBY1s", "6ZevpFAT1ys"];
@@ -40,7 +42,17 @@ class YoutubeViewState extends State<YoutubeView> {
   @override
   void initState() {
     super.initState();
-    currentSong = widget.initialSong ?? SongDatabase.getInstance().songs[0];
+
+
+  }
+
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    database = SongDatabase.of(context);
+
+    currentSong = widget.initialSong ?? database.songs[0];
     mode = widget.mode ?? YoutubeViewMode.SongMode;
 
     String? vId;
@@ -59,9 +71,7 @@ class YoutubeViewState extends State<YoutubeView> {
       youtubePlayerController = YoutubePlayerController.fromVideoId(videoId: vId, params: params);
     else
       youtubePlayerController = YoutubePlayerController();
-
   }
-
 
   String? getYoutubeUrlByMode(SongData song) {
     switch(mode) {
@@ -73,7 +83,7 @@ class YoutubeViewState extends State<YoutubeView> {
   }
 
   Widget buildFurtherVideosList(BuildContext context) {
-    List<SongData> songsWithVideos = SongDatabase.getInstance().songs
+    List<SongData> songsWithVideos = database.songs
         .where((element) {
           return getYoutubeUrlByMode(element) != null;
         }).toList();

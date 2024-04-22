@@ -43,41 +43,65 @@ class SongDatabase {
 
   static SongDatabase? _instance = null;
 
-  List<SongData> songs = [];
+  List<SongData> _songs = [];
   List<String> assetRoutes = [];
 
-  SongDatabase._() {
+  List<SongData> get songs {
+    List<SongData> ret = [];
+    for (var element in _songs) {
+      ret.add(element);
+    }
+    return ret;
+  }
+
+  SongData get startOfBook {
+    return _songs[0];
+  }
+
+  SongDatabase._(String bundleStr) {
     for(int i = 0; i < 232; i++)
     {
       assetRoutes.add("assets/zarandok_img_${i}.jpg");
     }
 
-    rootBundle.loadString("assets/bundle.json").then((v){
-      var data = jsonDecode(v);
-      for(var s in data)
-      {
-        songs.add(SongData.fromJson(s));
-      }
+    var data = jsonDecode(bundleStr);
+    for(var s in data)
+    {
+      _songs.add(SongData.fromJson(s));
+    }
+
+    _songs.sort((a, b) {
+      return a.num.compareTo(b.num);
     });
+
   }
 
   SongData getPageDataByPage(int page)
   {
-    SongData ret = songs.first;
-    for (var f in songs) {
-      if(f.page == page)
+    var ret = _songs.first;
+    for (var f in _songs) {
+      if(f.page > page)
       {
+        return ret;
+      }
+      else {
         ret = f;
       }
     }
     return ret;
   }
 
-  static SongDatabase getInstance() {
+  static Future<SongDatabase> getInstance() async {
     if(_instance == null) {
-      _instance = SongDatabase._();
+      var bundleStr = await rootBundle.loadString("assets/bundle.json");
+      _instance = SongDatabase._(bundleStr);
     }
-    return _instance!;
+    return Future.value(_instance);
+  }
+
+  static SongDatabase of(BuildContext context) {
+    var provider = SongDatabaseProvider.of(context);
+    return provider.database;
   }
 
 }
@@ -113,4 +137,33 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
     trailing: Row(mainAxisSize: MainAxisSize.min, children: trailing,
     ),
   );
+}
+
+
+class SongDatabaseProvider extends InheritedWidget {
+
+  SongDatabase _database;
+
+  SongDatabase get database {
+    return _database;
+  }
+
+  SongDatabaseProvider(this._database, {required super.child});
+
+  static SongDatabaseProvider? maybeOf(BuildContext context) {
+    SongDatabaseProvider? ret = context.dependOnInheritedWidgetOfExactType<SongDatabaseProvider>();
+    return ret;
+  }
+
+  static SongDatabaseProvider of(BuildContext context) {
+    final SongDatabaseProvider? result = maybeOf(context);
+    assert(result != null, 'No SongDatabaseProvider found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
+    return false;
+  }
+  
 }

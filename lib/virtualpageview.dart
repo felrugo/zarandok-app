@@ -13,21 +13,47 @@ enum ViewMode { VM_IMAGE, VM_TEXT }
 
 typedef OnSongChangedCallback = void Function(SongData? song);
 
+class VirtualPageValue {
+  SongData song;
+  ViewMode viewMode;
+
+  VirtualPageValue(this.song, this.viewMode);
+
+  @override
+  bool operator ==(Object other) {
+    if(other is VirtualPageValue)
+    {
+      return song == other.song && viewMode == other.viewMode;
+    }
+    return false;
+  }
+
+}
+
 /// Controller for [VirtualPageView]
-class VirtualPageController extends ChangeNotifier
+class VirtualPageController extends ValueNotifier<VirtualPageValue>
 {
 
-  SongData? _songData;
+  VirtualPageController.fromSong(SongData song) : super(VirtualPageValue(song, ViewMode.VM_IMAGE));
 
-  SongData? get currentSong {
-    return _songData;
+  SongData get currentSong {
+    return value.song;
   }
 
   void jumpTo(SongData pageData)
   {
-    _songData = pageData;
-    notifyListeners();
+    value = VirtualPageValue(pageData, value.viewMode);
   }
+
+  void toggleViewMode() {
+    switch(value.viewMode) {
+      case ViewMode.VM_IMAGE:
+        value = VirtualPageValue(value.song, ViewMode.VM_TEXT);
+      case ViewMode.VM_TEXT:
+        value = VirtualPageValue(value.song, ViewMode.VM_IMAGE);
+    }
+  }
+
 }
 
 class VirtualPageView extends StatefulWidget
@@ -56,19 +82,35 @@ class VirtualPageViewState extends State<VirtualPageView>
 
   late VirtualPageController controller;
   late OnSongChangedCallback? changedCallback;
-  late ViewMode viewMode;
 
-  void onSongJump() {
-    transformationController.value.setIdentity();
-    zoomed = false;
-    switch(viewMode) {
-      case ViewMode.VM_IMAGE:
-        pageController.jumpToPage(controller.currentSong?.page??0);
-        break;
-      case ViewMode.VM_TEXT:
-        pageController.jumpToPage((controller.currentSong?.num??1)-1);
-        break;
-    }
+  late SongDatabase database;
+
+  late VirtualPageValue ctrlValue;
+
+  ViewMode get viewMode {
+    return ctrlValue.viewMode;
+  }
+
+
+  void onControllerChange() {
+    if(controller.value == ctrlValue)
+      return;
+    else
+      ctrlValue = controller.value;
+
+    setState(() {
+      transformationController.value.setIdentity();
+      zoomed = false;
+
+      switch(viewMode) {
+        case ViewMode.VM_IMAGE:
+          pageController.jumpToPage(controller.currentSong.page);
+          break;
+        case ViewMode.VM_TEXT:
+          pageController.jumpToPage((controller.currentSong.num)-1);
+          break;
+      }
+    });
   }
 
   @override
@@ -77,10 +119,15 @@ class VirtualPageViewState extends State<VirtualPageView>
 
     controller = widget.controller;
     changedCallback = widget.songChangedCallback;
-    viewMode = widget.viewMode;
+    ctrlValue = controller.value;
 
-    controller.addListener(onSongJump);
+    controller.addListener(onControllerChange);
+  }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    database = SongDatabase.of(context);
   }
 
   @override
@@ -89,11 +136,11 @@ class VirtualPageViewState extends State<VirtualPageView>
 
     controller = widget.controller;
     changedCallback = widget.songChangedCallback;
-    viewMode = widget.viewMode;
+    ctrlValue = controller.value;
 
     if(controller != oldWidget.controller) { // Reinit callback
-      oldWidget.controller.removeListener(onSongJump);
-      controller.addListener(onSongJump);
+      oldWidget.controller.removeListener(onControllerChange);
+      controller.addListener(onControllerChange);
     }
 
 
@@ -101,36 +148,23 @@ class VirtualPageViewState extends State<VirtualPageView>
     zoomed = false;
     switch(viewMode) {
       case ViewMode.VM_IMAGE:
-        pageController.jumpToPage(controller.currentSong?.page??0);
+        pageController.jumpToPage(controller.currentSong.page);
         break;
       case ViewMode.VM_TEXT:
-        pageController.jumpToPage((controller.currentSong?.num??1)-1);
+        pageController.jumpToPage((controller.currentSong.num)-1);
         break;
     }
 
   }
 
-  int getForPage(int page)
-  {
-    var pageDatas = SongDatabase.getInstance().songs;
-    var maped = pageDatas.map((e) => (e.page - page).abs());
-    var m = maped.reduce(min);
-    var filtered = List<SongData>.from(pageDatas);
-    filtered.retainWhere((e) => (e.page - page).abs() == m);
-    filtered.sort((a,b)=> a.num.compareTo(b.num));
-    var ix = pageDatas.indexOf(filtered.first);
-    return ix;
-  }
   
   onPageChanged(int page)
   {
-    var pageDatas = SongDatabase.getInstance().songs;
+    var pageDatas = database.songs;
     SongData? data;
     if (viewMode == ViewMode.VM_IMAGE)
     {
-      data = pageDatas.firstWhere((element){
-        return page == element.page;
-      }, orElse: ()=>pageDatas.first);
+      data = database.getPageDataByPage(page);
     }
     else
     {
@@ -139,42 +173,51 @@ class VirtualPageViewState extends State<VirtualPageView>
       }, orElse: ()=>pageDatas.first);
     }
 
-    controller._songData = data;
+    ctrlValue = VirtualPageValue(data, viewMode);
+    controller.value = ctrlValue;
   }
 
 
   @override
   Widget build(BuildContext context) {
 
-    var pageDatas = SongDatabase.getInstance().songs;
-    var assetRoutes = SongDatabase.getInstance().assetRoutes;
+    var pageDatas = database.songs;
+    var assetRoutes = database.assetRoutes;
 
-    Widget inner = PageView.builder(
-        controller: pageController,
-        itemCount: assetRoutes.length,
-        onPageChanged: onPageChanged,
-        physics: !zoomed ? PageScrollPhysics() : NeverScrollableScrollPhysics(),
-        itemBuilder: (ctx, i){
-          return viewMode == ViewMode.VM_IMAGE ?
-          InteractiveViewer(
-            constrained: true,
-            scaleEnabled: true,
-            panEnabled: zoomed,
-            transformationController: transformationController,
-            minScale: 1.0,
-            maxScale: 10.0,
-            onInteractionUpdate: (details) {
-              double correctScale = transformationController.value.getMaxScaleOnAxis();
-              setState(() {
-                zoomed = ! ( correctScale <= (1.0 + 0.01) );
-              });
-            },
-            child: Image.asset(assetRoutes[i]),
-          )
-              : TextModeView(pageDatas[i]);
-        });
+    switch(viewMode) {
 
-    return inner;
-
+      case ViewMode.VM_IMAGE:
+        return PageView.builder(
+            controller: pageController,
+            itemCount: assetRoutes.length,
+            onPageChanged: onPageChanged,
+            physics: !zoomed ? PageScrollPhysics() : NeverScrollableScrollPhysics(),
+            itemBuilder: (ctx, i){
+              return InteractiveViewer(
+                constrained: true,
+                scaleEnabled: true,
+                panEnabled: zoomed,
+                transformationController: transformationController,
+                minScale: 1.0,
+                maxScale: 10.0,
+                onInteractionUpdate: (details) {
+                  double correctScale = transformationController.value.getMaxScaleOnAxis();
+                  setState(() {
+                    zoomed = ! ( correctScale <= (1.0 + 0.01) );
+                  });
+                },
+                child: Image.asset(assetRoutes[i]),
+              );
+            });
+      case ViewMode.VM_TEXT:
+        return PageView.builder(
+            controller: pageController,
+            itemCount: pageDatas.length,
+            onPageChanged: onPageChanged,
+            physics: PageScrollPhysics(),
+            itemBuilder: (ctx, i) {
+               return TextModeView(pageDatas[i]);
+            });
+    }
   }
 }

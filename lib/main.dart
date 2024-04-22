@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show SystemChrome, SystemUiMode, SystemUiOverlay, SystemUiOverlayStyle, rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:zarandok_app_2/about.dart';
 import 'package:zarandok_app_2/virtualpageview.dart';
@@ -20,31 +19,57 @@ class AppScrollBehavior extends MaterialScrollBehavior {
   };
 }
 
-void main() => runApp(MyApp());
+void main() => runApp(ZarandokApp());
 
-class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+class ZarandokApp extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ZarandokApp',
-      scrollBehavior: AppScrollBehavior(),
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<StatefulWidget> createState() {
+    return ZarandokAppState();
   }
 }
+
+class ZarandokAppState extends State<ZarandokApp> {
+
+  SongDatabase? database;
+
+  @override
+  Widget build(BuildContext context) {
+
+    if(database != null) {
+      var app = MaterialApp(
+          title: 'ZarandokApp',
+          scrollBehavior: AppScrollBehavior(),
+          theme: ThemeData(
+            // This is the theme of your application.
+            //
+            // Try running your application with "flutter run". You'll see the
+            // application has a blue toolbar. Then, without quitting the app, try
+            // changing the primarySwatch below to Colors.green and then invoke
+            // "hot reload" (press "r" in the console where you ran "flutter run",
+            // or simply save your changes to "hot reload" in a Flutter IDE).
+            // Notice that the counter didn't reset back to zero; the application
+            // is not restarted.
+            primarySwatch: Colors.blue,
+          ),
+          home: MyHomePage(title: 'Flutter Demo Home Page')
+      );
+      return SongDatabaseProvider(database!, child: app);
+    }
+    else {
+
+      SongDatabase.getInstance().then((value) {
+        setState(() {
+          database = value;
+        });
+      });
+
+      return Center(child: CircularProgressIndicator(),);
+    }
+  }
+  
+}
+
+
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key? key, required this.title}) : super(key: key);
@@ -67,7 +92,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   bool showMenu = true;
-  VirtualPageController virtualPageController = VirtualPageController();
+  late VirtualPageController virtualPageController;
+  late SongDatabase songDatabase;
   ViewMode viewMode = ViewMode.VM_IMAGE;
 
   @override
@@ -75,8 +101,15 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    songDatabase = SongDatabase.of(context);
+    virtualPageController = VirtualPageController.fromSong(songDatabase.startOfBook);
+  }
+
   void onSearch() {
-    var delegate = SongSearchDelegate(SongDatabase.getInstance().songs);
+    var delegate = SongSearchDelegate(songDatabase?.songs ?? []);
     showSearch(context: context, delegate: delegate).then((v){
       if(v != null)
         virtualPageController.jumpTo(v);
@@ -86,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void openTableOfContent()
   {
     Navigator.push<SongData>(context, MaterialPageRoute(builder: (ctx){
-      return TableOfContentsView(SongDatabase.getInstance().songs);
+      return TableOfContentsView(songDatabase.songs ?? []);
     })).then((v){
       if (v != null) {
         virtualPageController.jumpTo(v);
@@ -124,29 +157,13 @@ class _MyHomePageState extends State<MyHomePage> {
     List<Widget> ret = [];
     ret.add(IconButton(icon: Icon(Icons.search), onPressed: onSearch));
     ret.add(IconButton(icon: Icon(Icons.text_fields), onPressed: () {
-      if (viewMode == ViewMode.VM_IMAGE) {
-        setState(() {
-          viewMode = ViewMode.VM_TEXT;
-        });
-      }
-      else {
-        setState(() {
-          viewMode = ViewMode.VM_IMAGE;
-        });
-      }
+      virtualPageController.toggleViewMode();
     },));
     return ret;
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-
     return Scaffold(
       appBar: showMenu ? AppBar(
         title: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(5), child: Image.asset("assets/icon/icon.png", fit: BoxFit.cover, height: 30.0,)), SizedBox(width: 10.0,), Text("ZarandokApp")],),
