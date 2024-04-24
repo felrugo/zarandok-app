@@ -113,9 +113,19 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
     trailing.add(
         IconButton(iconSize:30.0, onPressed: (){
           Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
-            return YoutubeView(initialSong: song,);
+            return YoutubeView(initialSong: song, initialMode: YoutubeViewMode.KaraokeMode,);
           }));
         }, icon: Icon(Icons.play_circle,))
+    );
+  }
+
+  if(song.youtubeSongUrl != null) {
+    trailing.add(
+        IconButton(iconSize:30.0, onPressed: (){
+          Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
+            return YoutubeView(initialSong: song, initialMode: YoutubeViewMode.SongMode,);
+          }));
+        }, icon: Icon(Icons.play_arrow_outlined,))
     );
   }
 

@@ -16,9 +16,9 @@ enum YoutubeViewMode {
 
 class YoutubeView extends StatefulWidget {
   final SongData? initialSong;
-  final YoutubeViewMode? mode;
+  final YoutubeViewMode? initialMode;
 
-  const YoutubeView({this.initialSong, this.mode, super.key});
+  const YoutubeView({this.initialSong, this.initialMode, super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -53,7 +53,7 @@ class YoutubeViewState extends State<YoutubeView> {
     database = SongDatabase.of(context);
 
     currentSong = widget.initialSong ?? database.songs[0];
-    mode = widget.mode ?? YoutubeViewMode.SongMode;
+    mode = widget.initialMode ?? YoutubeViewMode.SongMode;
 
     String? vId;
     switch(mode) {
