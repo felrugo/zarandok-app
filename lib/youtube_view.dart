@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
+
 import 'package:flutter/material.dart';
-import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zarandok_app_2/songdata.dart';
 import 'package:zarandok_app_2/zarandokyoutubescaffold.dart';

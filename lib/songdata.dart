@@ -1,3 +1,6 @@
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -137,7 +140,7 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
             launchUrlString(url);
           }
         });
-      }, icon: Icon(Icons.print))
+      }, icon: Image.asset("assets/icon/icon.png", fit: BoxFit.cover, height: 30.0,))
   );
 
   return ListTile(

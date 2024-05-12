@@ -1,18 +1,20 @@
-import 'dart:convert';
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
+
 import 'dart:core';
-import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:zarandok_app_2/textmodeview.dart';
 import 'package:zarandok_app_2/songdata.dart';
 
+/// Enum for differentiate the Sheet and Chords view mode of the main PageView of the application.
+enum ViewMode { Sheet, Chords }
 
-enum ViewMode { VM_IMAGE, VM_TEXT }
-
+/// Typedef for Song Change events. The argument must be the new song.
 typedef OnSongChangedCallback = void Function(SongData? song);
 
+/// Value class for the [VirtualPageController] caontaining the current song and view mode.
 class VirtualPageValue {
   SongData song;
   ViewMode viewMode;
@@ -30,54 +32,69 @@ class VirtualPageValue {
 
 }
 
-/// Controller for [VirtualPageView]
+/// Controller for [VirtualPageView].
+/// Supports logical navigation between the pages of the [VirtualPageView].
 class VirtualPageController extends ValueNotifier<VirtualPageValue>
 {
+  /// Constructor for [VirtualPageController] with an initial song.
+  VirtualPageController.fromSong(SongData song) : super(VirtualPageValue(song, ViewMode.Sheet));
 
-  VirtualPageController.fromSong(SongData song) : super(VirtualPageValue(song, ViewMode.VM_IMAGE));
-
+  /// The current song of the [VirtualPageView].
   SongData get currentSong {
     return value.song;
   }
 
+  /// Make the controlled [VirtualPageView] jump to the given song.
   void jumpTo(SongData pageData)
   {
     value = VirtualPageValue(pageData, value.viewMode);
   }
 
+  /// Switches between the view modes.
   void toggleViewMode() {
     switch(value.viewMode) {
-      case ViewMode.VM_IMAGE:
-        value = VirtualPageValue(value.song, ViewMode.VM_TEXT);
-      case ViewMode.VM_TEXT:
-        value = VirtualPageValue(value.song, ViewMode.VM_IMAGE);
+      case ViewMode.Sheet:
+        value = VirtualPageValue(value.song, ViewMode.Chords);
+      case ViewMode.Chords:
+        value = VirtualPageValue(value.song, ViewMode.Sheet);
     }
   }
 
 }
 
+/// An extended [PageView] creating the main view of the application.
+/// The main application of this widget is to enable switching between the
+/// sheet and chords view mode but it also supports zooming and panning of the sheets
+/// and altogether emulating the feeling of sliding the pages of the paper-based songbook
 class VirtualPageView extends StatefulWidget
 {
-
+  /// [VirtualPageController] for the view
   final VirtualPageController controller;
+  /// Callback to notify on song change
   final OnSongChangedCallback? songChangedCallback;
 
+  /// Initial [ViewMode] for the view
   final ViewMode viewMode;
 
+  /// Constructor with initial view mode and controller
   VirtualPageView(this.viewMode, this.controller, this.songChangedCallback, {super.key});
 
   @override
   State<StatefulWidget> createState() {
-    return VirtualPageViewState();
+    return _VirtualPageViewState();
   }
 }
 
-class VirtualPageViewState extends State<VirtualPageView>
+/// State of the [VirtualPageView] widget.
+class _VirtualPageViewState extends State<VirtualPageView>
 {
-
+  /// Controller for the encapsulated [PageView].
   PageController pageController = PageController();
 
+  /// Controller for the encapsulated [InteractiveViewer]
   TransformationController transformationController = TransformationController();
+
+  /// Flag for the pageview to disable scroll when the InteractiVievewer is zoomed.
   bool zoomed = false;
 
   late VirtualPageController controller;
@@ -91,22 +108,23 @@ class VirtualPageViewState extends State<VirtualPageView>
     return ctrlValue.viewMode;
   }
 
-
+  /// Called when the controller value changed aka. the view need to jump to the page of the new song
+  /// and adapt the requested viewmode
   void onControllerChange() {
-    if(controller.value == ctrlValue)
+    if(controller.value == ctrlValue) // No change -> return
       return;
     else
-      ctrlValue = controller.value;
+      ctrlValue = controller.value; // save new value
 
     setState(() {
       transformationController.value.setIdentity();
-      zoomed = false;
+      zoomed = false; // Every page jump or viewmode change results in zooming out to full scale
 
       switch(viewMode) {
-        case ViewMode.VM_IMAGE:
+        case ViewMode.Sheet:
           pageController.jumpToPage(controller.currentSong.page);
           break;
-        case ViewMode.VM_TEXT:
+        case ViewMode.Chords:
           pageController.jumpToPage((controller.currentSong.num)-1);
           break;
       }
@@ -127,7 +145,7 @@ class VirtualPageViewState extends State<VirtualPageView>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    database = SongDatabase.of(context);
+    database = SongDatabase.of(context); // refresh database, optional
   }
 
   @override
@@ -144,25 +162,25 @@ class VirtualPageViewState extends State<VirtualPageView>
     }
 
 
-    transformationController.value.setIdentity();
+    transformationController.value.setIdentity(); // execute zoom out
     zoomed = false;
     switch(viewMode) {
-      case ViewMode.VM_IMAGE:
+      case ViewMode.Sheet:
         pageController.jumpToPage(controller.currentSong.page);
         break;
-      case ViewMode.VM_TEXT:
+      case ViewMode.Chords:
         pageController.jumpToPage((controller.currentSong.num)-1);
         break;
     }
 
   }
 
-  
+  /// Called when the [PageView] scrolls
   onPageChanged(int page)
   {
     var pageDatas = database.songs;
     SongData? data;
-    if (viewMode == ViewMode.VM_IMAGE)
+    if (viewMode == ViewMode.Sheet)
     {
       data = database.getPageDataByPage(page);
     }
@@ -173,8 +191,9 @@ class VirtualPageViewState extends State<VirtualPageView>
       }, orElse: ()=>pageDatas.first);
     }
 
-    ctrlValue = VirtualPageValue(data, viewMode);
-    controller.value = ctrlValue;
+    ctrlValue = VirtualPageValue(data, viewMode); // Update the value based on the destination song
+    controller.value = ctrlValue; // Update the controller (Two-way binding). This will results in a call to
+                                  // onControllerChange but will return due to equality.
   }
 
 
@@ -186,17 +205,17 @@ class VirtualPageViewState extends State<VirtualPageView>
 
     switch(viewMode) {
 
-      case ViewMode.VM_IMAGE:
+      case ViewMode.Sheet:
         return PageView.builder(
             controller: pageController,
             itemCount: assetRoutes.length,
             onPageChanged: onPageChanged,
-            physics: !zoomed ? PageScrollPhysics() : NeverScrollableScrollPhysics(),
+            physics: !zoomed ? PageScrollPhysics() : NeverScrollableScrollPhysics(), // Disable scroll when zoomed
             itemBuilder: (ctx, i){
               return InteractiveViewer(
                 constrained: true,
                 scaleEnabled: true,
-                panEnabled: zoomed,
+                panEnabled: zoomed, // Only when zoomed
                 transformationController: transformationController,
                 minScale: 1.0,
                 maxScale: 10.0,
@@ -209,7 +228,7 @@ class VirtualPageViewState extends State<VirtualPageView>
                 child: Image.asset(assetRoutes[i]),
               );
             });
-      case ViewMode.VM_TEXT:
+      case ViewMode.Chords:
         return PageView.builder(
             controller: pageController,
             itemCount: pageDatas.length,

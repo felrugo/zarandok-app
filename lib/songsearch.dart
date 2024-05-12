@@ -1,4 +1,5 @@
-
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
 import 'package:flutter/material.dart';
 import 'package:zarandok_app_2/songdata.dart';

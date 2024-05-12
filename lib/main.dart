@@ -1,3 +1,6 @@
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
+
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -94,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool showMenu = true;
   late VirtualPageController virtualPageController;
   late SongDatabase songDatabase;
-  ViewMode viewMode = ViewMode.VM_IMAGE;
+  ViewMode viewMode = ViewMode.Sheet;
 
   @override
   void initState() {
