@@ -1,16 +1,11 @@
 // Copyright(c) Szabó Bálint 2023-2024
 // Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
-import 'dart:collection';
 import 'dart:core';
-import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:zarandok_app_2/textmodeview.dart';
 import 'package:zarandok_app_2/songdata.dart';
 
@@ -208,9 +203,7 @@ class _VirtualPageViewState extends State<VirtualPageView>
     if(page < assetRoutes.length) {
       return Image.asset(assetRoutes[page]);
     }
-    else if(page - assetRoutes.length < 9) {
-      return SvgPicture.asset("assets/svgs/portrait/${page-assetRoutes.length+1}.svg");
-    }
+
     return SizedBox();
   }
 
@@ -226,7 +219,7 @@ class _VirtualPageViewState extends State<VirtualPageView>
       case ViewMode.Sheet:
         return PageView.builder(
             controller: pageController,
-            itemCount: assetRoutes.length+9,
+            itemCount: assetRoutes.length,
             onPageChanged: onPageChanged,
             physics: !zoomed ? PageScrollPhysics() : NeverScrollableScrollPhysics(), // Disable scroll when zoomed
             itemBuilder: (ctx, i){

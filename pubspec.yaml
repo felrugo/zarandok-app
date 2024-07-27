@@ -69,8 +69,6 @@ flutter:
   assets:
     - assets/
     - assets/icon/
-    - assets/svgs/portrait/
-    - assets/svgs/portrait/opt/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

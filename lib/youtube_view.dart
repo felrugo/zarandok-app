@@ -7,13 +7,13 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zarandok_app_2/songdata.dart';
 import 'package:zarandok_app_2/zarandokyoutubescaffold.dart';
 
-
+/// Enum to differentiate the Youtube player karaoke and full song mode
 enum YoutubeViewMode {
   KaraokeMode,
   SongMode
 }
 
-
+/// Widget to play Youtube videos
 class YoutubeView extends StatefulWidget {
   final SongData? initialSong;
   final YoutubeViewMode? initialMode;
@@ -27,6 +27,7 @@ class YoutubeView extends StatefulWidget {
 
 }
 
+/// State for [YoutubeView]
 class YoutubeViewState extends State<YoutubeView> {
 
   late YoutubePlayerController youtubePlayerController;
@@ -42,8 +43,6 @@ class YoutubeViewState extends State<YoutubeView> {
   @override
   void initState() {
     super.initState();
-
-
   }
 
 
@@ -106,6 +105,7 @@ class YoutubeViewState extends State<YoutubeView> {
     }, separatorBuilder: (BuildContext context, int index) { return Divider(); }, itemCount: songsWithVideos.length, shrinkWrap: true,);
   }
 
+  /// Builds the switch widget to change between karaoke and full song mode
   Widget buildModeSwitch(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Text("Karaoke"),
@@ -131,6 +131,7 @@ class YoutubeViewState extends State<YoutubeView> {
     ],);
   }
 
+  /// Build the Youtube player in landscape mode
   Widget buildWide(BuildContext context, Widget player) {
 
     final pad = MediaQuery.of(context).padding;
@@ -155,6 +156,7 @@ class YoutubeViewState extends State<YoutubeView> {
     );
   }
 
+  /// Build the Youtube player in portrait mode
   Widget buildTall(BuildContext context, Widget player) {
     return Column(children: [
       player,
@@ -192,6 +194,7 @@ class YoutubeViewState extends State<YoutubeView> {
     super.dispose();
   }
 
+  /// Build the Youtube player depending on the orientation of the screen
   Widget decideOrientation(BuildContext context, Widget player, Orientation orientation) {
     var mediaData = MediaQuery.of(context);
     if(mediaData.size.width > mediaData.size.height) { // widescreen
