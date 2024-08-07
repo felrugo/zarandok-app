@@ -37,6 +37,8 @@ class TableOfContentsState extends State<TableOfContentsView>
   List<SongData> data;
   SortType sortType = SortType.ST_TITLE;
 
+  ScrollController scrollController = ScrollController();
+
   TableOfContentsState(this.data)
   {
     sortType = SortType.ST_TITLE;
@@ -93,7 +95,7 @@ class TableOfContentsState extends State<TableOfContentsView>
           },
         )
       ],),
-      body: Scrollbar(child: ListView.separated(itemBuilder: buildListItem, separatorBuilder: (ctx, ix)=>Divider(), itemCount: data.length)),
+      body: ListView.separated(itemBuilder: buildListItem, separatorBuilder: (ctx, ix)=>Divider(), itemCount: data.length),
     );
   }
 

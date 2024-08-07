@@ -112,7 +112,7 @@ class SongDatabase {
 ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onTap) {
 
   List<Widget> trailing = [];
-  if(song.youtubeKaraokeUrl != null) {
+  if(song.youtubeKaraokeUrl != null && false) { // Deactivated route
     trailing.add(
         IconButton(iconSize:30.0, onPressed: (){
           Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
@@ -122,7 +122,7 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
     );
   }
 
-  if(song.youtubeSongUrl != null) {
+  if(song.youtubeSongUrl != null && false) {
     trailing.add(
         IconButton(iconSize:30.0, onPressed: (){
           Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
@@ -132,6 +132,7 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
     );
   }
 
+  /*
   trailing.add(
       IconButton(iconSize: 30.0, onPressed: () {
         var url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
@@ -142,6 +143,9 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
         });
       }, icon: Image.asset("assets/icon/icon.png", fit: BoxFit.cover, height: 30.0,))
   );
+  */
+
+  trailing.clear(); // Deactivated routes
 
   return ListTile(
     title: Text(song.title),
