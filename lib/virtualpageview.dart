@@ -1,158 +1,189 @@
-import 'dart:convert';
-import 'dart:core';
-import 'dart:math';
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
+import 'dart:core';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:zarandok_app_2/sheetmodeview.dart';
+import 'package:flutter/widgets.dart';
 import 'package:zarandok_app_2/textmodeview.dart';
 import 'package:zarandok_app_2/songdata.dart';
 
+/// Enum for differentiate the Sheet and Chords view mode of the main PageView of the application.
+enum ViewMode { Sheet, Chords }
 
-enum ViewMode { VM_IMAGE, VM_TEXT }
+/// Typedef for Song Change events. The argument must be the new song.
+typedef OnSongChangedCallback = void Function(SongData? song);
 
-typedef void OnSongChangedCallback(SongData? song);
+/// Value class for the [VirtualPageController] caontaining the current song and view mode.
+class VirtualPageValue {
+  SongData song;
+  ViewMode viewMode;
 
-/// Controller for [VirtualPageView]
-class VirtualPageController extends ChangeNotifier
-{
+  VirtualPageValue(this.song, this.viewMode);
 
-  ViewMode _viewMode = ViewMode.VM_IMAGE;
-
-  SongData? pageToJump;
-
-  SongData? currentSong;
-
-  set viewMode(ViewMode value)
-  {
-    _viewMode = value;
-    notifyListeners();
-  }
-  ViewMode get viewMode
-  {
-    return _viewMode;
+  @override
+  bool operator ==(Object other) {
+    if(other is VirtualPageValue)
+    {
+      return song == other.song && viewMode == other.viewMode;
+    }
+    return false;
   }
 
-
-  void jumpTo(SongData pageData)
-  {
-    pageToJump = pageData;
-    notifyListeners();
-  }
 }
 
+/// Controller for [VirtualPageView].
+/// Supports logical navigation between the pages of the [VirtualPageView].
+class VirtualPageController extends ValueNotifier<VirtualPageValue>
+{
+  /// Constructor for [VirtualPageController] with an initial song.
+  VirtualPageController.fromSong(SongData song) : super(VirtualPageValue(song, ViewMode.Sheet));
+
+  /// The current song of the [VirtualPageView].
+  SongData get currentSong {
+    return value.song;
+  }
+
+  /// Make the controlled [VirtualPageView] jump to the given song.
+  void jumpTo(SongData pageData)
+  {
+    value = VirtualPageValue(pageData, value.viewMode);
+  }
+
+  /// Switches between the view modes.
+  void toggleViewMode() {
+    switch(value.viewMode) {
+      case ViewMode.Sheet:
+        value = VirtualPageValue(value.song, ViewMode.Chords);
+      case ViewMode.Chords:
+        value = VirtualPageValue(value.song, ViewMode.Sheet);
+    }
+  }
+
+}
+
+/// An extended [PageView] creating the main view of the application.
+/// The main application of this widget is to enable switching between the
+/// sheet and chords view mode but it also supports zooming and panning of the sheets
+/// and altogether emulating the feeling of sliding the pages of the paper-based songbook
 class VirtualPageView extends StatefulWidget
 {
+  /// [VirtualPageController] for the view
+  final VirtualPageController controller;
+  /// Callback to notify on song change
+  final OnSongChangedCallback? songChangedCallback;
 
-  VirtualPageController controller;
-  OnSongChangedCallback callback;
-  VirtualPageView(this.controller, this.callback);
+  /// Initial [ViewMode] for the view
+  final ViewMode viewMode;
+
+  /// Constructor with initial view mode and controller
+  VirtualPageView(this.viewMode, this.controller, this.songChangedCallback, {super.key});
 
   @override
   State<StatefulWidget> createState() {
-    return VirtualPageViewState(controller, callback);
+    return _VirtualPageViewState();
   }
 }
 
-class VirtualPageViewState extends State<VirtualPageView>
+/// State of the [VirtualPageView] widget.
+class _VirtualPageViewState extends State<VirtualPageView>
 {
-
-  ViewMode viewMode = ViewMode.VM_IMAGE;
-
-  SongData? pageToJump;
-
+  /// Controller for the encapsulated [PageView].
   PageController pageController = PageController();
 
-  List<String> assetRoutes = [];
+  /// Controller for the encapsulated [InteractiveViewer]
+  TransformationController transformationController = TransformationController();
 
-  List<SongData> pageDatas = [];
+  /// Flag for the pageview to disable scroll when the InteractiVievewer is zoomed.
+  bool zoomed = false;
 
-  bool enaSnap = true;
+  late VirtualPageController controller;
+  late OnSongChangedCallback? changedCallback;
 
-  VirtualPageController controller;
-  OnSongChangedCallback songChangedCallback;
+  late SongDatabase database;
 
-  VirtualPageViewState(this.controller, this.songChangedCallback)
-  {
+  late VirtualPageValue ctrlValue;
 
-    controller?.addListener(this.onControllerEvent);
+  ViewMode get viewMode {
+    return ctrlValue.viewMode;
+  }
 
-    assetRoutes.clear();
+  /// Called when the controller value changed aka. the view need to jump to the page of the new song
+  /// and adapt the requested viewmode
+  void onControllerChange() {
+    if(controller.value == ctrlValue) // No change -> return
+      return;
+    else
+      ctrlValue = controller.value; // save new value
 
-    for(int i = 0; i < 232; i++)
-    {
-      assetRoutes.add("assets/zarandok_img_${i}.jpg");
+    setState(() {
+      transformationController.value.setIdentity();
+      zoomed = false; // Every page jump or viewmode change results in zooming out to full scale
+
+      switch(viewMode) {
+        case ViewMode.Sheet:
+          pageController.jumpToPage(controller.currentSong.page);
+          break;
+        case ViewMode.Chords:
+          pageController.jumpToPage((controller.currentSong.num)-1);
+          break;
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = widget.controller;
+    changedCallback = widget.songChangedCallback;
+    ctrlValue = controller.value;
+
+    controller.addListener(onControllerChange);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    database = SongDatabase.of(context); // refresh database, optional
+  }
+
+  @override
+  void didUpdateWidget(covariant VirtualPageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    controller = widget.controller;
+    changedCallback = widget.songChangedCallback;
+    ctrlValue = controller.value;
+
+    if(controller != oldWidget.controller) { // Reinit callback
+      oldWidget.controller.removeListener(onControllerChange);
+      controller.addListener(onControllerChange);
     }
 
-    rootBundle.loadString("assets/bundle.json").then((v){
-      var data = jsonDecode(v);
-      for(var s in data)
-      {
-        pageDatas.add(SongData.fromJson(s));
-      }
-      pageDatas.sort((a,b) => a.num.compareTo(b.num));
-    });
 
-    songChangedCallback(null);
+    transformationController.value.setIdentity(); // execute zoom out
+    zoomed = false;
+    switch(viewMode) {
+      case ViewMode.Sheet:
+        pageController.jumpToPage(controller.currentSong.page);
+        break;
+      case ViewMode.Chords:
+        pageController.jumpToPage((controller.currentSong.num)-1);
+        break;
+    }
 
   }
 
-
-
-  int getForPage(int page)
-  {
-    var maped = pageDatas.map((e) => (e.page - page).abs());
-    var m = maped.reduce(min);
-    var filtered = List<SongData>.from(pageDatas);
-    filtered.retainWhere((e) => (e.page - page).abs() == m);
-    filtered.sort((a,b)=> a.num.compareTo(b.num));
-    var ix = pageDatas.indexOf(filtered.first);
-    return ix;
-  }
-  
-  void onControllerEvent()
-  {
-    setState(() {
-      
-      if(viewMode != controller.viewMode) {
-        viewMode = controller.viewMode;
-        switch(viewMode) {
-          
-          case ViewMode.VM_IMAGE:
-            var p = pageController.page?.toInt();
-            pageController.jumpToPage(pageDatas[p??0].page);
-            break;
-          case ViewMode.VM_TEXT:
-            enaSnap = true;
-            var ix = getForPage(pageController.page?.toInt()??0);
-            pageController.jumpToPage(ix);
-            break;
-        }
-      }
-      if(pageToJump != controller.pageToJump)
-        {
-          pageToJump = controller.pageToJump;
-          switch(viewMode) {
-            case ViewMode.VM_IMAGE:
-            pageController.jumpToPage(pageToJump?.page??0);
-              break;
-            case ViewMode.VM_TEXT:
-            pageController.jumpToPage((pageToJump?.num??1)-1);
-              break;
-          }
-        }
-    });
-  }
-
-
+  /// Called when the [PageView] scrolls
   onPageChanged(int page)
   {
+    var pageDatas = database.songs;
     SongData? data;
-    if (viewMode == ViewMode.VM_IMAGE)
+    if (viewMode == ViewMode.Sheet)
     {
-      data = pageDatas.firstWhere((element){
-        return page == element.page;
-      }, orElse: ()=>pageDatas.first);
+      data = database.getPageDataByPage(page);
     }
     else
     {
@@ -160,27 +191,63 @@ class VirtualPageViewState extends State<VirtualPageView>
         return page == element.num-1;
       }, orElse: ()=>pageDatas.first);
     }
-    songChangedCallback(data);
+
+    ctrlValue = VirtualPageValue(data, viewMode); // Update the value based on the destination song
+    controller.value = ctrlValue; // Update the controller (Two-way binding). This will results in a call to
+                                  // onControllerChange but will return due to equality.
   }
+
+  Widget dynamicImage(int page) {
+    var assetRoutes = database.assetRoutes;
+
+    if(page < assetRoutes.length) {
+      return Image.asset(assetRoutes[page]);
+    }
+
+    return SizedBox();
+  }
+
 
   @override
   Widget build(BuildContext context) {
 
-    return PageView.builder(
-        controller: pageController,
-        itemCount: assetRoutes.length,
-        onPageChanged: onPageChanged,
-        physics: enaSnap ? PageScrollPhysics() : NeverScrollableScrollPhysics(),
-        itemBuilder: (ctx, i){
-          return viewMode == ViewMode.VM_IMAGE ? SheetModeView(assetRoutes[i],
-                  (v){
-                    setState(() {
-                      enaSnap = !v;
-                    });
-                  },
-                  ) : TextModeView(pageDatas[i]);
-        });
+    var pageDatas = database.songs;
+    var assetRoutes = database.assetRoutes;
 
+    switch(viewMode) {
+
+      case ViewMode.Sheet:
+        return PageView.builder(
+            controller: pageController,
+            itemCount: assetRoutes.length,
+            onPageChanged: onPageChanged,
+            physics: !zoomed ? PageScrollPhysics() : NeverScrollableScrollPhysics(), // Disable scroll when zoomed
+            itemBuilder: (ctx, i){
+              return InteractiveViewer(
+                constrained: true,
+                scaleEnabled: true,
+                panEnabled: zoomed, // Only when zoomed
+                transformationController: transformationController,
+                minScale: 1.0,
+                maxScale: 10.0,
+                onInteractionUpdate: (details) {
+                  double correctScale = transformationController.value.getMaxScaleOnAxis();
+                  setState(() {
+                    zoomed = ! ( correctScale <= (1.0 + 0.01) );
+                  });
+                },
+                child: dynamicImage(i),
+              );
+            });
+      case ViewMode.Chords:
+        return PageView.builder(
+            controller: pageController,
+            itemCount: pageDatas.length,
+            onPageChanged: onPageChanged,
+            physics: PageScrollPhysics(),
+            itemBuilder: (ctx, i) {
+               return TextModeView(pageDatas[i]);
+            });
+    }
   }
-
 }

@@ -1,6 +1,11 @@
+// Copyright(c) Szabó Bálint 2023-2024
+// Usage controlled by the GPLv3 LICENSE file in the root of the repository
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zarandok_app_2/songdata.dart';
+import 'package:zarandok_app_2/youtube_view.dart';
 
 enum SortType {
   ST_TITLE,
@@ -32,16 +37,23 @@ class TableOfContentsState extends State<TableOfContentsView>
   List<SongData> data;
   SortType sortType = SortType.ST_TITLE;
 
+  ScrollController scrollController = ScrollController();
+
   TableOfContentsState(this.data)
   {
     sortType = SortType.ST_TITLE;
     sortIt();
   }
 
+  @override
+  void initState() {
+    super.initState();
+
+  }
+
   Widget buildListItem(BuildContext ctx, int ix)
   {
-
-    return ListTile(title: Text(data[ix].title), subtitle: Text("${data[ix].num}. ének"), onTap: (){
+    return buildSongListTile(data[ix], ctx, (){
       Navigator.pop(ctx, data[ix]);
     },);
   }
@@ -76,7 +88,6 @@ class TableOfContentsState extends State<TableOfContentsView>
 
 
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Scaffold(
       appBar: AppBar(title: Text("Tartalomjegyzék"), actions: <Widget>[
         Builder(builder: (ctx){
@@ -84,7 +95,7 @@ class TableOfContentsState extends State<TableOfContentsView>
           },
         )
       ],),
-      body: Scrollbar(child: ListView.separated(itemBuilder: buildListItem, separatorBuilder: (ctx, ix)=>Divider(), itemCount: data.length)),
+      body: ListView.separated(itemBuilder: buildListItem, separatorBuilder: (ctx, ix)=>Divider(), itemCount: data.length),
     );
   }
 
