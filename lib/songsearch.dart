@@ -1,52 +1,58 @@
-// Copyright(c) Szabó Bálint 2023-2024
+// Copyright(c) Szabó Bálint 2023-2026
 // Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
 import 'package:flutter/material.dart';
+import 'package:iculo/model.dart';
+import 'package:zarandok_app_2/models.dart';
 import 'package:zarandok_app_2/songdata.dart';
 import 'package:zarandok_app_2/strcomp.dart';
 
-class SongSearchDelegate extends SearchDelegate<SongData>
+/// [SearchDelegate] for searching songs
+class SongSearchDelegate extends SearchDelegate<IculoSong>
 {
-  List<SongData> _songs;
 
+  List<IculoSong> _songs;
+
+  /// Constructor, gets the list of [IculoSong]
   SongSearchDelegate(this._songs);
 
   @override
   List<Widget> buildActions(BuildContext context) {
-    // TODO: implement buildActions
     return [
-      IconButton(icon: Icon(Icons.cancel), onPressed: (){ query = ""; },)
+      IconButton(icon: Icon(Icons.cancel), onPressed: (){ query = ""; },) // Clear action, resets the query
     ];
+  }
+
+  List<IculoSong> combinedSearch(String prompt, {int limit = 10}) {
+    _songs.sort((a, b) {
+      try {
+        int parsed = int.parse(query);
+        var snuma = a.num ?? 0;
+        var snumb = b.num ?? 0;
+        return (parsed - snuma).abs().compareTo((parsed - snumb).abs());
+      } catch (e) {}
+      return distance(query, b.title ?? "").compareTo(distance(query, a.title ?? ""));
+    });
+
+    return _songs.take(limit).toList();
   }
 
   @override
   Widget? buildLeading(BuildContext context) {
-    // TODO: implement buildLeading
     return null;
   }
 
   @override
   Widget buildResults(BuildContext context) {
-    // TODO: implement buildResults
-    if(_songs == null) {
-      return Container();
-    }
-    _songs.sort((a,b){
-      try {
-        if (int.parse(query) != null)
-          return (int.parse(query) - a.num).abs().compareTo(
-              (int.parse(query) - b.num).abs());
-      }
-      catch(e) {}
-      return distance(query, b.title).compareTo(distance(query, a.title));
-    });
-
+    
+    var search_result = combinedSearch(query);
+    
     return ListView.separated(itemBuilder: (c, i){
-      return buildSongListTile(_songs[i], c, () {
-        close(context, _songs[i]);
+      return buildSongListTile(search_result[i], c, () {
+        close(context, search_result[i]);
       });
     },
-      itemCount: 10,
+      itemCount: search_result.length,
       separatorBuilder: (c, i){
         return Divider();
       },);
@@ -56,26 +62,14 @@ class SongSearchDelegate extends SearchDelegate<SongData>
   @override
   Widget buildSuggestions(BuildContext context) {
 
-    if(_songs == null) {
-      return Container();
-    }
+    var search_result = combinedSearch(query);
 
-    _songs.sort((a,b){
-
-      try {
-        if (int.parse(query) != null)
-          return (int.parse(query) - a.num).abs().compareTo(
-              (int.parse(query) - b.num).abs());
-      }
-      catch(e) {}
-      return distance(query, b.title).compareTo(distance(query, a.title));
-    });
     return ListView.separated(itemBuilder: (c, i){
-      return buildSongListTile(_songs[i], c, () {
-        close(context, _songs[i]);
+      return buildSongListTile(search_result[i], c, () {
+        close(context, search_result[i]);
       });
     },
-    itemCount: 10,
+    itemCount: search_result.length,
     separatorBuilder: (c, i){
       return Divider();
     },);

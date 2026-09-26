@@ -1,45 +1,49 @@
-// Copyright(c) Szabó Bálint 2023-2024
+// Copyright(c) Szabó Bálint 2023-2026
 // Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:iculo/model.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:zarandok_app_2/models.dart';
 import 'package:zarandok_app_2/songdata.dart';
 import 'package:zarandok_app_2/youtube_view.dart';
 
+/// Enum to represent sorting type: Sort by Title [SortType.ST_TITLE] or sort by Number [SortType.ST_NUM]
 enum SortType {
   ST_TITLE,
   ST_NUM
 }
 
+/// Map to convert [SortType] to its name
 const Map<SortType, String> SortTypeNames = {
   SortType.ST_TITLE: "Title",
   SortType.ST_NUM : "Number"
 };
 
+/// Widget to list songs ordered by Title [SortType.ST_TITLE] or Number [SortType.ST_NUM]
 class TableOfContentsView extends StatefulWidget
 {
 
-  final List<SongData> data;
+  final List<IculoSong> data;
 
   TableOfContentsView(this.data);
 
   @override
   State<StatefulWidget> createState() {
-    return TableOfContentsState(data);
+    return _TableOfContentsState(data);
   }
 
 }
 
-class TableOfContentsState extends State<TableOfContentsView>
+/// [State] for [TableOfContentsView].
+class _TableOfContentsState extends State<TableOfContentsView>
 {
 
-  List<SongData> data;
+  List<IculoSong> data;
   SortType sortType = SortType.ST_TITLE;
 
-  ScrollController scrollController = ScrollController();
-
-  TableOfContentsState(this.data)
+  _TableOfContentsState(this.data)
   {
     sortType = SortType.ST_TITLE;
     sortIt();
@@ -54,25 +58,34 @@ class TableOfContentsState extends State<TableOfContentsView>
   Widget buildListItem(BuildContext ctx, int ix)
   {
     return buildSongListTile(data[ix], ctx, (){
+      // Open the selected song
       Navigator.pop(ctx, data[ix]);
     },);
   }
 
+  /// Sort [data] based in the current [sortType]
   void sortIt()
   {
     this.data.sort((a, b){
+      var ta = a.title??"";
+      var tb = b.title??"";
+
+      var na = a.num??0;
+      var nb = b.num??0;
+
       switch(sortType) {
         case SortType.ST_TITLE:
-          return a.title.compareTo(b.title);
-          break;
+          return ta.compareTo(tb);
+
         case SortType.ST_NUM:
-          return a.num.compareTo(b.num);
-          break;
+          return na.compareTo(nb);
+
       }
-      return 0;
+
     });
   }
 
+  /// Called when the sort button pressed, changes the sorting preference
   void onSort(BuildContext ctx)
   {
     setState(() {
@@ -95,7 +108,7 @@ class TableOfContentsState extends State<TableOfContentsView>
           },
         )
       ],),
-      body: ListView.separated(itemBuilder: buildListItem, separatorBuilder: (ctx, ix)=>Divider(), itemCount: data.length),
+      body: ListView.separated(itemBuilder: buildListItem, separatorBuilder: (ctx, ix)=>Divider(), itemCount: data.length), // Simple [ListView] for the songs
     );
   }
 

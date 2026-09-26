@@ -1,4 +1,4 @@
-// Copyright(c) Szabó Bálint 2023-2024
+// Copyright(c) Szabó Bálint 2023-2026
 // Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
 import 'dart:math';

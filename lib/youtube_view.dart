@@ -1,21 +1,25 @@
-// Copyright(c) Szabó Bálint 2023-2024
+// Copyright(c) Szabó Bálint 2023-2026
 // Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:iculo/model.dart';
+import 'package:iculo/utils/iculo_youtube_scaffold.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
-import 'package:zarandok_app_2/songdata.dart';
-import 'package:zarandok_app_2/zarandokyoutubescaffold.dart';
+import 'package:zarandok_app_2/models.dart';
 
-/// Enum to differentiate the Youtube player karaoke and full song mode
+/// [YoutubeViewMode] for the karaoke and song mode
 enum YoutubeViewMode {
   KaraokeMode,
   SongMode
 }
 
-/// Widget to play Youtube videos
+/// View for the youtube player. Depends on the bug fixes of the [YoutubePlayerScaffold]
+/// contained in the Iculo library as [IculoYoutubePlayerScaffold].
+/// Due to deprecation, [YoutubePlayer] should be prefered in the next releases
+/// Revision needed
 class YoutubeView extends StatefulWidget {
-  final SongData? initialSong;
+  final IculoSong? initialSong;
   final YoutubeViewMode? initialMode;
 
   const YoutubeView({this.initialSong, this.initialMode, super.key});
@@ -27,73 +31,80 @@ class YoutubeView extends StatefulWidget {
 
 }
 
-/// State for [YoutubeView]
+/// [State] for the [YoutubeView].
+/// Contains minor workarounds due to Youtube policies
+/// Visualised differently based on screen orientation.
 class YoutubeViewState extends State<YoutubeView> {
 
   late YoutubePlayerController youtubePlayerController;
-  late SongData currentSong;
+  late IculoSong currentSong;
   late YoutubeViewMode mode;
 
-  late SongDatabase database;
+  /// [ZarandokAppBundle] provided from the [BuildContext]
+  late ZarandokAppBundle bundle;
 
   bool fullscreenMode = false;
-
-  List<String> videos = ["fD4rxj7-uO0", "IQvzX0Z3HE4", "4Larp44Ta7c", "U0R8FxDcnM4", "EK0xnviBY1s", "6ZevpFAT1ys"];
 
   @override
   void initState() {
     super.initState();
+
   }
 
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    database = SongDatabase.of(context);
+    bundle = ZarandokAppBundle.of(context);
 
-    currentSong = widget.initialSong ?? database.songs[0];
+    currentSong = widget.initialSong ?? bundle.first;
     mode = widget.initialMode ?? YoutubeViewMode.SongMode;
 
     String? vId;
     switch(mode) {
       case YoutubeViewMode.KaraokeMode:
-        vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeKaraokeUrl??"");
+        vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeKaraoke??"");
         break;
       case YoutubeViewMode.SongMode:
-        vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeSongUrl??"");
+        vId = YoutubePlayerController.convertUrlToId(currentSong.youtubeSong??"");
         break;
     }
 
-    YoutubePlayerParams params = YoutubePlayerParams(showFullscreenButton: true);
+    YoutubePlayerParams params = YoutubePlayerParams(
+      showFullscreenButton: true,
+      origin: "https://www.youtube-nocookie.com"
+    );
 
-    if(vId != null)
-      youtubePlayerController = YoutubePlayerController.fromVideoId(videoId: vId, params: params);
-    else
-      youtubePlayerController = YoutubePlayerController();
+    youtubePlayerController = YoutubePlayerController(params: params);
+
+    if(vId != null) {
+      youtubePlayerController.loadVideoById(videoId: vId);
+    }
   }
 
-  String? getYoutubeUrlByMode(SongData song) {
+  /// Gets the youtube url based on [mode]
+  String? getYoutubeUrlByMode(IculoSong song) {
     switch(mode) {
       case YoutubeViewMode.KaraokeMode:
-        return song.youtubeKaraokeUrl;
+        return song.youtubeKaraoke;
       case YoutubeViewMode.SongMode:
-        return song.youtubeSongUrl;
+        return song.youtubeSong;
     }
   }
 
   Widget buildFurtherVideosList(BuildContext context) {
-    List<SongData> songsWithVideos = database.songs
+    List<IculoSong> songsWithVideos = bundle.songs
         .where((element) {
           return getYoutubeUrlByMode(element) != null;
         }).toList();
 
     return ListView.separated(itemBuilder: (ctx, i) {
-      SongData song = songsWithVideos[i];
+      IculoSong song = songsWithVideos[i];
       var lead = null;
-      if(song == currentSong) { // The song of the list item is currently playing
+      if(song.isSame(currentSong)) { // The song of the list item is currently playing
         lead = Icon(Icons.play_arrow);
       }
-      return ListTile(
+      return Card(child: ListTile(
         leading: lead,
         title: Text("${song.num}. ${song.title}"),
         onTap: () {
@@ -101,11 +112,11 @@ class YoutubeViewState extends State<YoutubeView> {
             currentSong = song;
             youtubePlayerController.loadVideoById(videoId: YoutubePlayerController.convertUrlToId(getYoutubeUrlByMode(song)??"")??"");
           });
-      },);
-    }, separatorBuilder: (BuildContext context, int index) { return Divider(); }, itemCount: songsWithVideos.length, shrinkWrap: true,);
+      },));
+    }, separatorBuilder: (BuildContext context, int index) { return SizedBox.fromSize(size: Size(250, 10),); },
+      itemCount: songsWithVideos.length, shrinkWrap: true,);
   }
 
-  /// Builds the switch widget to change between karaoke and full song mode
   Widget buildModeSwitch(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Text("Karaoke"),
@@ -131,7 +142,35 @@ class YoutubeViewState extends State<YoutubeView> {
     ],);
   }
 
-  /// Build the Youtube player in landscape mode
+  Widget buildSelectChips(BuildContext context) {
+    return Wrap(
+      spacing: 10.0,
+      children: [
+        ChoiceChip(label: Text("Dal"), selected: mode == YoutubeViewMode.SongMode, onSelected: currentSong.youtubeSong == null ? null : (v){
+          setState(() {
+            mode = YoutubeViewMode.SongMode;
+
+            // probably need to reload youtubeplayer
+            youtubePlayerController.loadVideoById(
+                videoId: YoutubePlayerController.convertUrlToId(getYoutubeUrlByMode(currentSong)??"")??""
+            );
+          });
+        },),
+        ChoiceChip(label: Text("Karaoke"), selected: mode == YoutubeViewMode.KaraokeMode, onSelected: currentSong.youtubeKaraoke == null ? null : (v){
+          setState(() {
+            mode = YoutubeViewMode.KaraokeMode;
+
+            // probably need to reload youtubeplayer
+            youtubePlayerController.loadVideoById(
+                videoId: YoutubePlayerController.convertUrlToId(getYoutubeUrlByMode(currentSong)??"")??""
+            );
+          });
+        },),
+      ],
+    );
+  }
+
+  /// Build the horizontal variant of the widget
   Widget buildWide(BuildContext context, Widget player) {
 
     final pad = MediaQuery.of(context).padding;
@@ -140,12 +179,12 @@ class YoutubeViewState extends State<YoutubeView> {
     double sw = MediaQuery.of(context).size.width - (pad.left+pad.right);
 
 
-    final side = Container(width: 250.0, child: Card(child: Column(children: [
-      Center(child:buildModeSwitch(context)),
-      Divider(thickness: 4.0,),
+    final side = Container(width: 250.0, child: Column(children: [
+      buildSelectChips(context),
+      SizedBox.fromSize(size: Size(250, 20),),
       Expanded(child: buildFurtherVideosList(context))
     ])
-    )
+
     );
 
     return SafeArea(child: Row(children: [
@@ -156,16 +195,17 @@ class YoutubeViewState extends State<YoutubeView> {
     );
   }
 
-  /// Build the Youtube player in portrait mode
+  /// Build the vertical variant of the widget
   Widget buildTall(BuildContext context, Widget player) {
     return Column(children: [
       player,
       Expanded(child:
-      Card(child: Column(children: [
-        Center(child: buildModeSwitch(context)),
-        Divider(thickness: 2.0,),
+      Column(children: [
+        SizedBox.fromSize(size: Size(250, 10),),
+        buildSelectChips(context),
+        SizedBox.fromSize(size: Size(250, 10),),
         Expanded(child: buildFurtherVideosList(context))
-      ],),),)
+      ],),)
       ],);
   }
 
@@ -175,7 +215,7 @@ class YoutubeViewState extends State<YoutubeView> {
     var title = mode == YoutubeViewMode.SongMode ? "ZarandokApp Dal" : "ZarandokApp Karaoke";
 
     return OrientationBuilder(builder: (context, orientation) {
-      return ZarandokAppYoutubePlayerScaffold(autoFullScreen: false,
+      return IculoYoutubePlayerScaffold(autoFullScreen: false,
           lockedOrientations: DeviceOrientation.values,
           builder: (context, player) {
             return Scaffold(
@@ -194,7 +234,7 @@ class YoutubeViewState extends State<YoutubeView> {
     super.dispose();
   }
 
-  /// Build the Youtube player depending on the orientation of the screen
+  /// Workaround to decide the screen orientation and return the decided variant.
   Widget decideOrientation(BuildContext context, Widget player, Orientation orientation) {
     var mediaData = MediaQuery.of(context);
     if(mediaData.size.width > mediaData.size.height) { // widescreen

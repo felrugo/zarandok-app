@@ -1,154 +1,111 @@
-// Copyright(c) Szabó Bálint 2023-2024
+// Copyright(c) Szabó Bálint 2023-2026
 // Usage controlled by the GPLv3 LICENSE file in the root of the repository
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:iculo/model.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:zarandok_app_2/download_manager.dart';
+import 'package:zarandok_app_2/iconchangebutton.dart';
+import 'package:zarandok_app_2/tableofcontents.dart';
 import 'package:zarandok_app_2/youtube_view.dart';
-/// Model class contains information for a song.
-class SongData
-{
 
-  String title = "";
-  int num = 0;
-  int page = 0;
-  List<String> lyrics = []; // Soon to be removed
-  String? youtubeSongUrl;
-  String? youtubeKaraokeUrl;
-  String? pdfUrl;
+import 'models.dart';
 
-  /// From JSON constructor
-  SongData.fromJson(Map<String, dynamic> json)
-  {
-    this.title = json["title"];
-    this.num = json["num"];
-    this.page = json["page"];
-    this.lyrics = [];
-    if(json["lyrics"] is List<dynamic>)
-      {
-        List<dynamic> l = json["lyrics"];
-        l.forEach((e){
-          if(e is String)
-            {
-              lyrics.add(e as String);
-            }
-        });
-      }
-    youtubeKaraokeUrl = json["youtubeKaraoke"];
-    youtubeSongUrl = json["youtubeSong"];
-    pdfUrl = json["sheet"];
-  }
-}
+/// A big utility function to create a [ListTile] to show the song in search and in [TableOfContentsView].
+/// Probably can have a better place in the future or be ousourced into the Iculo library
+ListTile buildSongListTile(IculoSong song, BuildContext context, VoidCallback onTap) {
 
-class SongDatabase {
+  List<Widget> trailing = []; // Song, Karaoke, Download sheet, Download chords
 
-  static SongDatabase? _instance = null;
 
-  List<SongData> _songs = [];
-  List<String> assetRoutes = [];
-
-  List<SongData> get songs {
-    List<SongData> ret = [];
-    for (var element in _songs) {
-      ret.add(element);
-    }
-    return ret;
-  }
-
-  SongData get startOfBook {
-    return _songs[0];
-  }
-
-  SongDatabase._(String bundleStr) {
-    for(int i = 0; i < 232; i++)
-    {
-      assetRoutes.add("assets/zarandok_img_${i}.jpg");
-    }
-
-    var data = jsonDecode(bundleStr);
-    for(var s in data)
-    {
-      _songs.add(SongData.fromJson(s));
-    }
-
-    _songs.sort((a, b) {
-      return a.num.compareTo(b.num);
-    });
-
-  }
-
-  SongData getPageDataByPage(int page)
-  {
-    var ret = _songs.first;
-    for (var f in _songs) {
-      if(f.page > page)
-      {
-        return ret;
-      }
-      else {
-        ret = f;
-      }
-    }
-    return ret;
-  }
-
-  static Future<SongDatabase> getInstance() async {
-    if(_instance == null) {
-      var bundleStr = await rootBundle.loadString("assets/bundle.json");
-      _instance = SongDatabase._(bundleStr);
-    }
-    return Future.value(_instance);
-  }
-
-  static SongDatabase of(BuildContext context) {
-    var provider = SongDatabaseProvider.of(context);
-    return provider.database;
-  }
-
-}
-
-ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onTap) {
-
-  List<Widget> trailing = [];
-  if(song.youtubeKaraokeUrl != null && false) { // Deactivated route
+  if(song.youtubeSong != null) { // Add Song navigation if there is song url
     trailing.add(
-        IconButton(iconSize:30.0, onPressed: (){
-          Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
-            return YoutubeView(initialSong: song, initialMode: YoutubeViewMode.KaraokeMode,);
-          }));
-        }, icon: Icon(Icons.play_circle,))
-    );
-  }
-
-  if(song.youtubeSongUrl != null && false) {
-    trailing.add(
-        IconButton(iconSize:30.0, onPressed: (){
+        IconChangeButton(hoverIcon: SvgPicture.asset("assets/svgs/icons/play_song_bg.svg", height: 30, width: 30), onPressed: (){
           Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
             return YoutubeView(initialSong: song, initialMode: YoutubeViewMode.SongMode,);
           }));
-        }, icon: Icon(Icons.play_arrow_outlined,))
+        }, icon: SvgPicture.asset("assets/svgs/icons/play_song.svg", fit: BoxFit.cover, height: 30.0, width: 30.0) // Use SVG
+        )
     );
   }
 
-  /*
-  trailing.add(
-      IconButton(iconSize: 30.0, onPressed: () {
-        var url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-        canLaunchUrlString(url).then((value) {
-          if(value) {
-            launchUrlString(url);
-          }
-        });
-      }, icon: Image.asset("assets/icon/icon.png", fit: BoxFit.cover, height: 30.0,))
-  );
-  */
+  if(song.youtubeKaraoke != null) {
+    trailing.add(
+        IconChangeButton(hoverIcon: SvgPicture.asset("assets/svgs/icons/play_karaoke_bg.svg", height: 30, width: 30), onPressed: (){
+          Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
+            return YoutubeView(initialSong: song, initialMode: YoutubeViewMode.KaraokeMode,);
+          }));
+        }, icon: SvgPicture.asset("assets/svgs/icons/play_karaoke.svg", fit: BoxFit.cover, height: 30.0, width: 30.0)
+        )
+    );
+  }
 
-  trailing.clear(); // Deactivated routes
+  if(song.externalUrls.isNotEmpty) {
+
+
+    trailing.add(
+        IconChangeButton(hoverIcon: SvgPicture.asset(
+            "assets/svgs/icons/dl_sheet_bg.svg", fit: BoxFit.cover,
+            height: 30.0,
+            width: 30.0),
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
+                return DownloadAssetSelector(song, trans: (name, url) {
+
+                  void down_action() {
+                    launchUrlString(url).then((v) {
+
+                    });
+                  }
+
+                  if (name == "sheet_ws") {
+                    return ListTile(leading: SvgPicture.asset(
+                        "assets/svgs/icons/dl_sheet.svg", fit: BoxFit.cover,
+                        height: 30.0,
+                        width: 30.0),
+                      title: Text("Kotta (mobilra optimizált)"),
+                      onTap: down_action,
+                    );
+                  }
+                  if (name == "text_ws") {
+                    return ListTile(leading: SvgPicture.asset(
+                        "assets/svgs/icons/dl_chords.svg", fit: BoxFit.cover,
+                        height: 30.0,
+                        width: 30.0),
+                      title: Text("Szöveg és akkordok (mobilra optimizált)"),
+                      onTap: down_action,
+                    );
+                  }
+
+                  if (name == "sheet_a4") {
+                    return ListTile(leading: SvgPicture.asset(
+                        "assets/svgs/icons/dl_sheet.svg", fit: BoxFit.cover,
+                        height: 30.0,
+                        width: 30.0),
+                      title: Text("Kotta (A4-es változat)"),
+                      onTap: down_action,
+                    );
+                  }
+
+
+                  return ListTile();
+                },);
+              }));
+            },
+            icon: SvgPicture.asset(
+              "assets/svgs/icons/dl_sheet.svg", fit: BoxFit.cover,
+              height: 30.0,)
+        )
+    );
+  }
 
   return ListTile(
-    title: Text(song.title),
+    title: Text(song.title??""),
     subtitle: Text("${song.num}. ének"),
     onTap: onTap,
     trailing: Row(mainAxisSize: MainAxisSize.min, children: trailing,
@@ -157,30 +114,3 @@ ListTile buildSongListTile(SongData song, BuildContext context, VoidCallback onT
 }
 
 
-class SongDatabaseProvider extends InheritedWidget {
-
-  SongDatabase _database;
-
-  SongDatabase get database {
-    return _database;
-  }
-
-  SongDatabaseProvider(this._database, {required super.child});
-
-  static SongDatabaseProvider? maybeOf(BuildContext context) {
-    SongDatabaseProvider? ret = context.dependOnInheritedWidgetOfExactType<SongDatabaseProvider>();
-    return ret;
-  }
-
-  static SongDatabaseProvider of(BuildContext context) {
-    final SongDatabaseProvider? result = maybeOf(context);
-    assert(result != null, 'No SongDatabaseProvider found in context');
-    return result!;
-  }
-
-  @override
-  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
-    return false;
-  }
-  
-}
